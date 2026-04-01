@@ -1,12 +1,32 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const [make, setMake] = useState("");
   const [price, setPrice] = useState("");
   const [postcode, setPostcode] = useState("");
+  const [alerts, setAlerts] = useState([]);
+  const [dealRating, setDealRating] = useState("");
 
-  // STRONG LINKS (work properly)
+  const marketPrices = {
+    bmw: 6000,
+    audi: 7000,
+    ford: 3000,
+    mercedes: 8000,
+    volkswagen: 5000
+  };
+
+  useEffect(() => {
+    const savedAlerts = localStorage.getItem("alerts");
+    if (savedAlerts) {
+      setAlerts(JSON.parse(savedAlerts));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("alerts", JSON.stringify(alerts));
+  }, [alerts]);
+
   const strongLinks = {
     autotrader: `https://www.autotrader.co.uk/car-search?make=${make}&price-to=${price}&postcode=${postcode}`,
     ebay: `https://www.ebay.co.uk/sch/i.html?_nkw=${make}&_udhi=${price}`,
@@ -14,32 +34,48 @@ export default function Home() {
     cargurus: `https://www.cargurus.co.uk/Cars/inventorylisting/viewDetailsFilterViewInventoryListing.action?entitySelectingHelper.selectedMake=${make}&maxPrice=${price}`
   };
 
-  // WEAKER LINKS (manual filtering needed)
-  const weakLinks = {
-    facebook: `https://www.facebook.com/marketplace/search/?query=${make}`,
-    gumtree: `https://www.gumtree.com/search?search_category=cars&q=${make}`,
-    copart: `https://www.copart.co.uk/vehicleFinder?query=${make}`
-  };
-
   const openAll = () => {
+    checkDeal();
     Object.values(strongLinks).forEach((link) => {
       window.open(link, "_blank");
     });
   };
 
-  const quickBMW = () => {
-    setMake("BMW");
-    setPrice("5000");
+  const saveAlert = () => {
+    const newAlert = { make, price, postcode };
+    setAlerts([...alerts, newAlert]);
   };
 
-  const quickCheap = () => {
-    setMake("");
-    setPrice("2000");
+  const deleteAlert = (index) => {
+    const updated = alerts.filter((_, i) => i !== index);
+    setAlerts(updated);
   };
 
-  const quickAudi = () => {
-    setMake("Audi");
-    setPrice("6000");
+  const checkDeal = () => {
+    const p = parseInt(price);
+    const m = make.toLowerCase();
+
+    if (!p || !m) {
+      setDealRating("");
+      return;
+    }
+
+    const avg = marketPrices[m];
+
+    if (!avg) {
+      setDealRating("No data for this car yet");
+      return;
+    }
+
+    if (p < avg * 0.6) {
+      setDealRating("🔥 Excellent Deal");
+    } else if (p < avg * 0.85) {
+      setDealRating("💸 Good Deal");
+    } else if (p <= avg * 1.1) {
+      setDealRating("👍 Fair Price");
+    } else {
+      setDealRating("❌ Overpriced");
+    }
   };
 
   return (
@@ -49,7 +85,14 @@ export default function Home() {
       minHeight: "100vh",
       padding: "20px"
     }}>
-      <h1 style={{ textAlign: "center" }}>🚗 UK Car Finder</h1>
+      {/* HEADER */}
+      <h1 style={{ textAlign: "center", fontSize: "32px" }}>
+        🚗 CarScout
+      </h1>
+
+      <p style={{ textAlign: "center", color: "#94a3b8" }}>
+        Find the best car deals across the UK
+      </p>
 
       {/* SEARCH BOX */}
       <div style={{
@@ -59,23 +102,15 @@ export default function Home() {
         maxWidth: "400px",
         margin: "20px auto"
       }}>
-        <button onClick={quickBMW}>🔥 BMW Deals</button>
-        <button onClick={quickCheap} style={{ marginLeft: "10px" }}>
-          💸 Under £2000
-        </button>
-        <button onClick={quickAudi} style={{ marginLeft: "10px" }}>
-          🚗 Audi Deals
-        </button>
-
         <input
-          placeholder="Make"
+          placeholder="Make (BMW, Audi...)"
           value={make}
           onChange={(e) => setMake(e.target.value)}
           style={{ width: "100%", marginTop: "10px", padding: "10px" }}
         />
 
         <input
-          placeholder="Max Price"
+          placeholder="Max Price (£)"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           style={{ width: "100%", marginTop: "10px", padding: "10px" }}
@@ -88,89 +123,71 @@ export default function Home() {
           style={{ width: "100%", marginTop: "10px", padding: "10px" }}
         />
 
-        <button 
-          onClick={openAll}
-          style={{
-            marginTop: "10px",
-            width: "100%",
-            padding: "10px",
-            backgroundColor: "#22c55e",
-            border: "none",
-            borderRadius: "6px"
-          }}
-        >
-          🚀 Search Best Sites
+        <button onClick={openAll} style={{
+          marginTop: "10px",
+          width: "100%",
+          padding: "10px",
+          backgroundColor: "#22c55e",
+          border: "none",
+          borderRadius: "6px"
+        }}>
+          🚀 Search Best Deals
         </button>
+
+        <button onClick={saveAlert} style={{
+          marginTop: "10px",
+          width: "100%",
+          padding: "10px",
+          backgroundColor: "#3b82f6",
+          border: "none",
+          borderRadius: "6px"
+        }}>
+          🔔 Save Alert
+        </button>
+
+        {dealRating && (
+          <div style={{
+            marginTop: "10px",
+            padding: "10px",
+            backgroundColor: "#334155",
+            borderRadius: "6px"
+          }}>
+            {dealRating}
+          </div>
+        )}
       </div>
 
-      {/* STRONG LINKS */}
-      <h3 style={{ textAlign: "center" }}>⚡ Best Results</h3>
-      <div style={{ textAlign: "center" }}>
-        <a href={strongLinks.autotrader} target="_blank">AutoTrader</a> |{" "}
-        <a href={strongLinks.ebay} target="_blank">eBay</a> |{" "}
-        <a href={strongLinks.motors} target="_blank">Motors</a> |{" "}
-        <a href={strongLinks.cargurus} target="_blank">CarGurus</a>
-      </div>
+      {/* ALERTS */}
+      <h2 style={{ textAlign: "center" }}>🔔 Saved Alerts</h2>
 
-      {/* WEAKER LINKS */}
-      <h3 style={{ textAlign: "center", marginTop: "20px" }}>
-        ⚠️ Other Sites (may need filtering)
-      </h3>
-      <div style={{ textAlign: "center" }}>
-        <a href={weakLinks.facebook} target="_blank">Facebook</a> |{" "}
-        <a href={weakLinks.gumtree} target="_blank">Gumtree</a> |{" "}
-        <a href={weakLinks.copart} target="_blank">Copart</a>
-      </div>
+      <div style={{ maxWidth: "400px", margin: "auto" }}>
+        {alerts.length === 0 && <p>No alerts yet</p>}
 
-      {/* DEAL CARDS */}
-      <h2 style={{ textAlign: "center", marginTop: "30px" }}>
-        🔥 Featured Deals
-      </h2>
+        {alerts.map((alert, index) => (
+          <div key={index} style={{
+            backgroundColor: "#1e293b",
+            padding: "10px",
+            borderRadius: "8px",
+            marginTop: "10px",
+            position: "relative"
+          }}>
+            <p>{alert.make || "Any make"} - £{alert.price}</p>
+            <p>{alert.postcode || "Any location"}</p>
 
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-        gap: "15px",
-        marginTop: "20px"
-      }}>
-        <div style={{
-          backgroundColor: "#1e293b",
-          padding: "15px",
-          borderRadius: "10px"
-        }}>
-          <h3>BMW 3 Series</h3>
-          <p>£2,300</p>
-          <p>🔥 Good deal</p>
-          <a href={strongLinks.autotrader} target="_blank" style={{ color: "#22c55e" }}>
-            View →
-          </a>
-        </div>
-
-        <div style={{
-          backgroundColor: "#1e293b",
-          padding: "15px",
-          borderRadius: "10px"
-        }}>
-          <h3>Ford Fiesta</h3>
-          <p>£1,800</p>
-          <p>💸 Cheap</p>
-          <a href={strongLinks.ebay} target="_blank" style={{ color: "#22c55e" }}>
-            View →
-          </a>
-        </div>
-
-        <div style={{
-          backgroundColor: "#1e293b",
-          padding: "15px",
-          borderRadius: "10px"
-        }}>
-          <h3>Audi A3</h3>
-          <p>£2,900</p>
-          <p>👍 Value</p>
-          <a href={weakLinks.facebook} target="_blank" style={{ color: "#22c55e" }}>
-            View →
-          </a>
-        </div>
+            <button onClick={() => deleteAlert(index)} style={{
+              position: "absolute",
+              top: "5px",
+              right: "5px",
+              backgroundColor: "red",
+              border: "none",
+              color: "white",
+              padding: "5px",
+              borderRadius: "4px"
+            }}>
+              X
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
